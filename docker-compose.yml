@@ -1,0 +1,46 @@
+version: "2"
+services:
+  consul_1:
+    image: mcchae/consul
+    hostname: consul
+    command: agent -server -bootstrap-expect 1 -config-dir /consul/conf.d 
+    ports:
+        - "8500:8500"
+    volumes:
+      - ./dhv/consul/conf.d:/consul/conf.d
+      - ./dhv/consul/data1:/consul/data
+  consul_2:
+    image: mcchae/consul
+    depends_on:
+        - "consul_1"
+    hostname: consul2
+    command: agent -server -join consul_1 -config-dir /consul/conf.d
+    volumes:
+      - ./dhv/consul/conf.d:/consul/conf.d
+      - ./dhv/consul/data2:/consul/data
+  consul_3:
+    image: mcchae/consul
+    command: agent -server -join consul_1 -config-dir /consul/conf.d
+    depends_on:
+        - "consul_1"
+        - "consul_2"
+    hostname: consul3
+    volumes:
+      - ./dhv/consul/conf.d:/consul/conf.d
+      - ./dhv/consul/data3:/consul/data
+  vault:
+    image: mcchae/vault
+    hostname: vault
+    container_name: vault
+    ports:
+      - "8200:8200"
+    command: server -config=/vault/conf.d/vault.hcl
+    depends_on:
+      - "consul_1"
+      - "consul_2"
+      - "consul_3"
+    environment:
+      - VAULT_ADDR=http://127.0.0.1:8200
+    volumes:
+      - ./dhv/vault/conf.d:/vault/conf.d
+
